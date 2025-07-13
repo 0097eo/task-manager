@@ -3,11 +3,10 @@
 # Exit on any error
 set -e
 
-# === THE FIX IS HERE ===
-# Use `sed` to dynamically set the listen port in the Nginx config.
-# This replaces the placeholder 'listen 80;' with the port Render provides.
-sed -i -e 's/listen 80;/listen '\"\$PORT\"';/' /etc/nginx/nginx.conf
-# ========================
+# Create a new config file to tell Nginx which port to listen on.
+echo "Creating Nginx listen.conf"
+echo "listen ${PORT};" > /etc/nginx/listen.conf
+
 
 # Clear any cached configuration from the build stage.
 echo "Clearing config cache..."
