@@ -3,18 +3,15 @@
 # Exit on any error
 set -e
 
-# === DEBUGGING: Print key environment variables to the log ===
-echo "--- App Environment ---"
-echo "APP_ENV is: $APP_ENV"
-echo "DATABASE_URL is: $DATABASE_URL" # This will show if the variable is empty
-echo "DB_CONNECTION is: $DB_CONNECTION"
-echo "-----------------------"
+# === THE FIX IS HERE ===
+# Use `sed` to dynamically set the listen port in the Nginx config.
+# This replaces the placeholder 'listen 80;' with the port Render provides.
+sed -i -e 's/listen 80;/listen '\"\$PORT\"';/' /etc/nginx/nginx.conf
+# ========================
 
-# Clear all possible caches to be absolutely sure
-echo "Clearing all caches..."
+# Clear any cached configuration from the build stage.
+echo "Clearing config cache..."
 php artisan config:clear
-php artisan route:clear
-php artisan view:clear
 
 # Run database migrations
 echo "Running migrations..."
