@@ -40,19 +40,20 @@ FROM php:8.2-fpm-alpine
 WORKDIR /var/www/html
 
 # Install runtime dependencies for PHP and Nginx
-# === THE FIX IS HERE: Add libzip-dev, then remove it ===
+# === THE FIX IS HERE: Add oniguruma-dev, then remove it ===
 RUN apk add --no-cache \
     nginx \
     supervisor \
     # Dev packages needed to COMPILE extensions
     postgresql-dev \
     libzip-dev \
+    oniguruma-dev \
     # Runtime libraries needed for extensions to RUN
     postgresql-libs \
     libzip libpng jpeg freetype oniguruma \
     && docker-php-ext-install pdo pdo_pgsql zip mbstring exif pcntl bcmath gd \
     # Now, remove all -dev packages to keep the final image small
-    && apk del postgresql-dev libzip-dev
+    && apk del postgresql-dev libzip-dev oniguruma-dev
 
 # Copy configs and entrypoint script
 COPY .docker/nginx.conf /etc/nginx/nginx.conf
