@@ -1,6 +1,5 @@
 # =================================================================
 # STAGE 1: The "Builder"
-# This stage installs all tools and builds all assets.
 # =================================================================
 FROM php:8.2-fpm-alpine AS builder
 
@@ -33,38 +32,21 @@ RUN npm run build
 
 # =================================================================
 # STAGE 2: The Final Production Image
-# This is a clean, lightweight image with only necessary files.
 # =================================================================
 FROM php:8.2-fpm-alpine
 
 WORKDIR /var/www/html
 
-# === THE DEFINITIVE FIX IS IN THIS BLOCK ===
-# Install permanent runtime dependencies first
+# Install runtime dependencies
 RUN apk add --no-cache \
-    nginx \
-    supervisor \
-    # These are the libraries PHP needs to RUN
-    postgresql-libs \
-    libzip \
-    libpng \
-    jpeg \
-    freetype \
-    oniguruma
+    nginx supervisor postgresql-libs libzip libpng jpeg freetype oniguruma
 
-# Install build dependencies, compile extensions, then remove build dependencies
+# Install build dependencies, compile extensions, then remove them
 RUN apk add --no-cache --virtual .build-deps \
-    $PHPIZE_DEPS \
-    postgresql-dev \
-    libzip-dev \
-    libpng-dev \
-    jpeg-dev \
-    freetype-dev \
-    oniguruma-dev \
+    $PHPIZE_DEPS postgresql-dev libzip-dev libpng-dev jpeg-dev freetype-dev oniguruma-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql zip mbstring exif pcntl bcmath gd \
     && apk del .build-deps
-# ==================================================
 
 # Copy configs and entrypoint script
 COPY .docker/nginx.conf /etc/nginx/nginx.conf
@@ -86,8 +68,12 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/artisan ./artisan
 COPY --from=builder /app/app ./app
 
-# Set correct permissions
+# Create a dedicated directory for Nginx's PID file and give ownership to the web server user.
+RUN mkdir -p /var/run/nginx && chown -R www-data:www-data /var/run/nginx
+
+# Set permissions for Laravel storage and cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# ========================
 
 EXPOSE 80
 
