@@ -3,15 +3,11 @@
 # Exit on error
 set -o errexit
 
-# Install PHP dependencies
+echo "Running Composer Install..."
 composer install --no-dev --no-interaction --optimize-autoloader
 
-# Install a specific version of Node.js and npm
-# Render's default Node can be old. This ensures we have a modern version.
-source /opt/render/etc/profile.d/nvm.sh
-nvm install 18
-nvm use 18
-
-# Install frontend dependencies and build assets
+echo "Installing NPM dependencies..."
 npm install
+
+echo "Building frontend assets..."
 npm run build
