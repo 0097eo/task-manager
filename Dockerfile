@@ -1,31 +1,17 @@
-
-FROM node:18-alpine AS builder
-
-# Set the working directory
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-
-# Generate the Ziggy route file
-RUN php artisan ziggy:generate
-
-# Build the assets for production
-RUN npm run build
-
-# Start from our clean PHP image
-FROM php:8.2-fpm-alpine
+# =================================================================
+# STAGE 1: The "Builder"
+#
+# This stage installs all tools (PHP, Composer, Node.js)
+# and builds all assets.
+# =================================================================
+FROM php:8.2-fpm-alpine AS builder
 
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR /app
 
 # Install system dependencies
+# This includes PHP dependencies, Node.js, and Git
 RUN apk add --no-cache \
-    postgresql-dev \
-    nginx \
-    supervisor \
     curl \
     git \
     libzip-dev \
@@ -33,7 +19,10 @@ RUN apk add --no-cache \
     libpng-dev \
     jpeg-dev \
     freetype-dev \
-    oniguruma-dev
+    oniguruma-dev \
+    postgresql-dev \
+    nodejs \
+    npm
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -43,21 +32,57 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy Composer files and install PHP dependencies
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --optimize-autoloader
-
-# Copy the rest of the application code
+# Copy all application files to the builder stage
 COPY . .
 
-# Copy only the compiled assets from the "builder" stage
-COPY --from=builder /app/public/build ./public/build
+# Install Composer dependencies
+RUN composer install --no-dev --no-interaction --optimize-autoloader
+
+# Install NPM dependencies
+RUN npm install
+
+# Generate the Ziggy route file (This will now work because PHP is present)
+RUN php artisan ziggy:generate
+
+# Build the frontend assets for production
+RUN npm run build
+
+
+# =================================================================
+# STAGE 2: The Final Production Image
+#
+# This stage is a clean, lightweight image. We copy only the
+# necessary files from the "builder" stage into it.
+# =================================================================
+FROM php:8.2-fpm-alpine
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Install ONLY the necessary runtime dependencies
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    # We only need the client libraries, not the -dev packages
+    postgresql-libs 
+
+# Install only necessary PHP extensions
+RUN docker-php-ext-install pdo pdo_pgsql
 
 # Copy configs and entrypoint script
 COPY .docker/nginx.conf /etc/nginx/nginx.conf
 COPY .docker/supervisord.conf /etc/supervisord.conf
 COPY .docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Copy the vendor directory from the builder stage
+COPY --from=builder /app/vendor ./vendor
+
+# Copy the built frontend assets from the builder stage
+COPY --from=builder /app/public/build ./public/build
+
+# Copy the rest of the application code
+COPY . .
 
 # Set correct permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
