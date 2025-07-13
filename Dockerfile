@@ -64,13 +64,15 @@ COPY --from=builder /app/database ./database
 COPY --from=builder /app/resources ./resources
 COPY --from=builder /app/routes ./routes
 COPY --from=builder /app/storage ./storage
+COPY --from=builder /app/app ./app
 COPY --from=builder /app/composer.json ./composer.json
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/artisan ./artisan
-COPY --from=builder /app/app ./app
 
-# Create a dedicated directory for Nginx's PID file and give ownership to the web server user.
+# === THE FIX IS HERE ===
+# Create dedicated directories for Nginx and PHP-FPM to use for their run files.
 RUN mkdir -p /var/run/nginx && chown -R www-data:www-data /var/run/nginx
+RUN mkdir -p /var/run/php && chown -R www-data:www-data /var/run/php
 
 # Set permissions for Laravel storage and cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
