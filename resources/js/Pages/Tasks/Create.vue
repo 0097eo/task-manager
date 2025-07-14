@@ -17,6 +17,9 @@ const form = useForm({
     user_id: '',
 });
 
+// Get today's date and format it as YYYY-MM-DD for the input's min attribute.
+const today = new Date().toISOString().split('T')[0];
+
 const submit = () => {
     form.post(route('tasks.store'), {
         onSuccess: () => form.reset(),
@@ -46,11 +49,19 @@ const submit = () => {
                                 <textarea id="description" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" v-model="form.description" required></textarea>
                                 <InputError class="mt-2" :message="form.errors.description" />
                             </div>
+
                             <div class="mt-4">
                                 <InputLabel for="deadline" value="Deadline" />
-                                <TextInput id="deadline" type="date" class="mt-1 block w-full" v-model="form.deadline" />
+                                <TextInput
+                                    id="deadline"
+                                    type="date"
+                                    class="mt-1 block w-full"
+                                    v-model="form.deadline"
+                                    :min="today"
+                                />
                                 <InputError class="mt-2" :message="form.errors.deadline" />
                             </div>
+                            
                              <div class="mt-4">
                                 <InputLabel for="user_id" value="Assign To" />
                                 <select id="user_id" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" v-model="form.user_id" required>
@@ -59,10 +70,10 @@ const submit = () => {
                                 </select>
                                 <InputError class="mt-2" :message="form.errors.user_id" />
                             </div>
-
+                            
                             <div class="flex items-center justify-end gap-x-4 mt-4">
-                                <Link 
-                                    :href="route('dashboard')" 
+                                <Link
+                                    :href="route('dashboard')"
                                     class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-800 uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                 >
                                     Cancel
