@@ -23,6 +23,9 @@ php artisan config:cache
 echo "Running migrations..."
 php artisan migrate --force
 
+echo "Seeding the database..."
+php artisan db:seed --force
+
 # Start the main services (PHP-FPM and Nginx) using Supervisor
 echo "Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisord.conf
